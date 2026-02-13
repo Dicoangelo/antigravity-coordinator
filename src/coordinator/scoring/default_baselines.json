@@ -1,0 +1,167 @@
+{
+  "version": "1.1.0",
+  "last_updated": "2026-02-05T20:00:00Z",
+  "research_lineage": [
+    {
+      "paper": "arXiv:2512.14142",
+      "title": "Astraea: State-Aware LLM Scheduling Engine",
+      "applied": "2026-01-18",
+      "insight": "Complexity thresholds for model selection based on state-aware scheduling"
+    },
+    {
+      "paper": "arXiv:2511.15755",
+      "title": "MyAntFarm.ai: DQ Framework for Multi-Agent Systems",
+      "applied": "2026-01-18",
+      "insight": "Decision Quality scoring: validity (40%) + specificity (30%) + correctness (30%)"
+    },
+    {
+      "paper": "arXiv:2511.15755",
+      "title": "Implementation Feedback - Haiku Threshold Tightening",
+      "applied": "2026-01-30",
+      "insight": "Haiku 4.3% success rate on user sessions. Tightened range 0.30→0.20, optimal 0.25→0.15"
+    },
+    {
+      "paper": "arXiv:2511.15755",
+      "title": "Implementation Feedback - Correctness Weight Boost",
+      "applied": "2026-01-30",
+      "insight": "Correctness component underperforming (79.5% vs 92%+ others). Boosted weight 30%→40% for faster learning"
+    },
+    {
+      "paper": "arXiv:2511.15755",
+      "title": "Implementation Feedback - Auto-Escalation & Quality Tracking",
+      "applied": "2026-01-30",
+      "insight": "Added: Haiku→Sonnet auto-escalation on failure, min message threshold (3), session quality scoring (0-5), DQ component enrichment"
+    }
+  ],
+
+  "complexity_thresholds": {
+    "haiku": {
+      "range": [0.0, 0.20],
+      "optimal": [0.0, 0.15],
+      "description": "Quick answers, formatting, simple Q&A",
+      "avg_latency_ms": 800,
+      "token_limit": 4096,
+      "use_cases": [
+        "Simple factual questions",
+        "Basic calculations",
+        "Formatting and linting",
+        "Quick explanations"
+      ]
+    },
+    "sonnet": {
+      "range": [0.15, 0.70],
+      "optimal": [0.20, 0.60],
+      "description": "Code generation, analysis, moderate reasoning",
+      "avg_latency_ms": 2000,
+      "token_limit": 200000,
+      "use_cases": [
+        "Code implementation",
+        "Debugging and analysis",
+        "Moderate refactoring",
+        "Technical documentation"
+      ]
+    },
+    "opus": {
+      "range": [0.60, 1.0],
+      "optimal": [0.70, 1.0],
+      "description": "Complex reasoning, architecture, research synthesis (Opus 4.6)",
+      "avg_latency_ms": 4000,
+      "token_limit": 1000000,
+      "use_cases": [
+        "System architecture design",
+        "Complex problem solving",
+        "Research paper analysis",
+        "Novel algorithm design",
+        "Agent team coordination",
+        "Large codebase analysis"
+      ],
+      "benchmark_scores": {
+        "terminal_bench_2": 65.4
+      },
+      "features": ["agent_teams", "adaptive_thinking", "1m_context"],
+      "thinking_tiers": {
+        "low":    {"complexity_range": [0.60, 0.72], "use_cases": ["quick architecture", "simple review"]},
+        "medium": {"complexity_range": [0.72, 0.85], "use_cases": ["multi-file refactor", "debugging"]},
+        "high":   {"complexity_range": [0.85, 0.95], "use_cases": ["complex algorithms", "system design"]},
+        "max":    {"complexity_range": [0.95, 1.00], "use_cases": ["research synthesis", "frontier problems"]}
+      }
+    }
+  },
+
+  "dq_weights": {
+    "validity": 0.35,
+    "specificity": 0.25,
+    "correctness": 0.40,
+    "notes": "Boosted correctness (0.30→0.40) to learn faster from failures. Original: 40/30/30 from ACE Framework"
+  },
+
+  "dq_thresholds": {
+    "actionable": 0.5,
+    "high_confidence": 0.7,
+    "cost_tie_breaker": 0.05,
+    "notes": "DQ scores below 0.5 indicate poor routing choice"
+  },
+
+  "performance_targets": {
+    "routing_accuracy": 0.75,
+    "cost_reduction_vs_random": 0.20,
+    "routing_latency_ms": 50,
+    "avg_dq_score": 0.70,
+    "model_distribution_target": {
+      "haiku": 0.35,
+      "sonnet": 0.50,
+      "opus": 0.15
+    }
+  },
+
+  "cost_per_mtok": {
+    "_note": "Keep in sync with ~/.claude/config/pricing.json",
+    "haiku": {
+      "input": 0.80,
+      "output": 4.0
+    },
+    "sonnet": {
+      "input": 3.0,
+      "output": 15.0
+    },
+    "opus": {
+      "input": 5.0,
+      "output": 25.0
+    }
+  },
+
+  "adaptive_thresholds": {
+    "simple": {
+      "complexity_range": [0.0, 0.15],
+      "recommended_model": "haiku",
+      "ace_rounds": 3,
+      "gap_threshold": 2
+    },
+    "moderate": {
+      "complexity_range": [0.15, 0.50],
+      "recommended_model": "sonnet",
+      "ace_rounds": 7,
+      "gap_threshold": 3
+    },
+    "complex": {
+      "complexity_range": [0.50, 0.75],
+      "recommended_model": "sonnet",
+      "ace_rounds": 12,
+      "gap_threshold": 4
+    },
+    "expert": {
+      "complexity_range": [0.75, 1.0],
+      "recommended_model": "opus",
+      "ace_rounds": 15,
+      "gap_threshold": 5
+    }
+  },
+
+  "validation": {
+    "last_validated": "2026-01-18",
+    "accuracy_against_test_set": 0.931,
+    "cost_efficiency_verified": true,
+    "cost_reduction_achieved": 0.729,
+    "notes": "Validated via diagnostic test - 72.9% cost reduction, 0.931 avg DQ score"
+  }
+}
