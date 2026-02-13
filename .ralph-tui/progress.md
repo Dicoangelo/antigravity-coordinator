@@ -8,6 +8,7 @@ after each iteration and it's included in prompts for context.
 - **Shell alias collision**: `coord` is aliased in shell to `python3 ~/.claude/coordinator/orchestrator.py`. Use `.venv/bin/coord` directly or `python -m` prefix when testing entry points.
 - **UCW package pattern**: hatchling build, `src/<pkg>/` layout, `[tool.hatch.build.targets.wheel] packages = ["src/<pkg>"]`, entry points via `[project.scripts]`.
 - **Quality gate order**: install → coord --version → pytest → mypy --strict → ruff check → ruff format --check
+- **JSON-to-DB migration pattern**: When replacing JSONL file writes with DB persistence, map to existing schema tables (e.g., coordination logs → `sessions` table, agent outcomes → `agents` table) and use `ON CONFLICT DO UPDATE` for idempotency. Remove unused `datetime` imports after removing timestamp-formatting code.
 
 ---
 
@@ -54,4 +55,17 @@ after each iteration and it's included in prompts for context.
 - **Learnings:**
   - Tables with natural unique keys (sessions→session_id, agents→agent_id, outcomes→session_id) support ON CONFLICT upserts directly; tables with only autoincrement PK (baselines, patterns) use standard insert + update-by-id pattern
   - Schema uses `INSERT OR IGNORE INTO schema_version` which is acceptable for seed data (version tracking), distinct from `INSERT OR REPLACE` which is banned for regular data due to column-zeroing risk
+---
+
+## 2026-02-13 - US-002
+- Engine module files (orchestrator.py, registry.py, distribution.py, conflict.py, executor.py) were already ported from prior iteration with configurable data_dir, database-backed registry/conflict tables, and full __init__.py exports
+- **Main gap was JSON file persistence**: orchestrator._log_coordination() wrote to JSONL file, registry._log_outcome() wrote to JSONL file — both replaced with database INSERT using ON CONFLICT upsert
+- Files changed:
+  - `src/coordinator/engine/orchestrator.py` — replaced JSONL logging with `sessions` table INSERT, added Database import, removed unused `datetime` import, removed `log_dir`/`log_file` attributes
+  - `src/coordinator/engine/registry.py` — replaced JSONL logging with `agents` table INSERT using ON CONFLICT(agent_id) DO UPDATE, removed `outcomes_file` attribute
+- Quality gates: 150 tests pass, mypy --strict clean, ruff check clean, ruff format clean
+- **Learnings:**
+  - Prior bulk agent builds may leave subtle JSON file writes that need targeted cleanup for "use database for persistence" acceptance criteria
+  - The `distribution.py` baselines loader reading from JSON config files is acceptable — it's loading config, not persisting runtime data
+  - When refactoring logging methods, check for orphaned imports (`datetime` was unused after removing timestamp-formatting code)
 ---

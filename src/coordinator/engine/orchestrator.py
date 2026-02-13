@@ -7,7 +7,6 @@ import time
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +14,7 @@ from coordinator.engine.conflict import ConflictManager, detect_potential_confli
 from coordinator.engine.distribution import TaskAssignment, WorkDistributor, decompose_task
 from coordinator.engine.executor import AgentConfig, AgentExecutor, AgentResult
 from coordinator.engine.registry import AgentRegistry, AgentState
+from coordinator.storage.database import Database
 
 
 @dataclass
@@ -49,13 +49,12 @@ class MultiAgentOrchestrator:
 
     def __init__(self, data_dir: Path | None = None) -> None:
         self.data_dir = data_dir or Path.home() / ".coordinator"
+        self.db = Database(self.data_dir)
+        self.db.ensure_tables()
         self.registry = AgentRegistry(self.data_dir)
         self.conflict_mgr = ConflictManager(self.data_dir)
         self.distributor = WorkDistributor(self.data_dir)
         self.executor = AgentExecutor(self.registry, self.conflict_mgr, self.data_dir)
-        self.log_dir = self.data_dir / "logs"
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.log_file = self.log_dir / "coordination-log.jsonl"
 
     def coordinate(
         self,
@@ -342,19 +341,31 @@ class MultiAgentOrchestrator:
         }
 
     def _log_coordination(self, result: CoordinationResult) -> None:
-        """Log coordination result."""
-        with open(self.log_file, "a") as f:
-            log_entry = {
-                "timestamp": datetime.now().isoformat(),
-                "task_id": result.task_id,
-                "task": result.task[:100],
-                "strategy": result.strategy,
-                "status": result.status,
+        """Log coordination result to the sessions table."""
+        metadata = json.dumps(
+            {
                 "duration_seconds": result.duration_seconds,
                 "total_cost": result.total_cost,
                 "agent_count": len(result.agent_results),
             }
-            f.write(json.dumps(log_entry) + "\n")
+        )
+        with self.db.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO sessions (session_id, strategy, task, status, metadata)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(session_id) DO UPDATE SET
+                    status = excluded.status,
+                    metadata = excluded.metadata
+                """,
+                (
+                    result.task_id,
+                    result.strategy,
+                    result.task[:100],
+                    result.status,
+                    metadata,
+                ),
+            )
 
     def status(self, task_id: str | None = None) -> dict[str, Any]:
         """Get status of coordination tasks."""

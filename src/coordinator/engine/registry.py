@@ -69,8 +69,6 @@ class AgentRegistry:
         self.db = Database(data_dir)
         self.db.ensure_tables()
         self._ensure_agents_table()
-        self.outcomes_file = self.db.data_dir / "logs" / "agent-outcomes.jsonl"
-        self.outcomes_file.parent.mkdir(parents=True, exist_ok=True)
 
     def _ensure_agents_table(self) -> None:
         """Create agents tracking table if needed (extends base schema)."""
@@ -303,16 +301,30 @@ class AgentRegistry:
             return cursor.rowcount
 
     def _log_outcome(self, agent: AgentRecord) -> None:
-        """Append agent outcome to JSONL log."""
-        with open(self.outcomes_file, "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "timestamp": datetime.now().isoformat(),
-                        **asdict(agent),
-                    }
+        """Log agent outcome to the agents table in the database."""
+        with self.db.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO agents (
+                    agent_id, session_id, model, role,
+                    status, started_at, completed_at, output
                 )
-                + "\n"
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(agent_id) DO UPDATE SET
+                    status = excluded.status,
+                    completed_at = excluded.completed_at,
+                    output = excluded.output
+                """,
+                (
+                    agent.agent_id,
+                    agent.task_id,
+                    agent.model,
+                    agent.agent_type,
+                    agent.state,
+                    agent.started_at,
+                    agent.completed_at,
+                    json.dumps(asdict(agent)),
+                ),
             )
 
     def _row_to_record(self, row: Any) -> AgentRecord:
