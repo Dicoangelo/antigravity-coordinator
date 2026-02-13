@@ -1,0 +1,14 @@
+{
+  "id": "cf91bb79-b0ae-438c-b420-36f7bb8e98a6",
+  "status": "running",
+  "startedAt": "2026-02-13T05:18:24.049Z",
+  "updatedAt": "2026-02-13T05:23:46.794Z",
+  "agentPlugin": "claude",
+  "trackerPlugin": "json",
+  "prdPath": "./tasks/prd.json",
+  "currentIteration": 2,
+  "maxIterations": 50,
+  "totalTasks": 0,
+  "tasksCompleted": 2,
+  "cwd": "/Users/dicoangelo/projects/products/antigravity-coordinator"
+}

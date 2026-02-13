@@ -1,7 +1,7 @@
 {
   "name": "Antigravity Coordinator",
-  "branchName": "ralph/antigravity-coordinator",
   "description": "Self-optimizing multi-agent coordinator — packages existing infrastructure (coordinator, DQ scoring, ACE, pattern orchestrator) into a standalone pip-installable Python product with research-driven self-improvement loops.",
+  "branchName": "ralph/antigravity-coordinator",
   "userStories": [
     {
       "id": "US-001",
@@ -24,9 +24,10 @@
         "ruff format --check src/ passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation story — every other story depends on this. Follow UCW package pattern from ~/projects/products/ucw/.",
-      "dependsOn": []
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-011",
@@ -48,9 +49,12 @@
         "ruff format --check src/ passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Storage must come before engine — engine writes to DB. Use ON CONFLICT pattern (lesson from CCC dashboard fix where INSERT OR REPLACE zeroed columns).",
-      "dependsOn": ["US-001"]
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-002",
@@ -73,9 +77,13 @@
         "ruff format --check src/ passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Read existing source files at ~/.claude/coordinator/ before porting. Adapt to use SQLite storage from US-011 instead of JSON files.",
-      "dependsOn": ["US-001", "US-011"]
+      "dependsOn": [
+        "US-001",
+        "US-011"
+      ],
+      "completionNotes": "All 5 engine files (orchestrator, registry, distribution, conflict, executor) ported with configurable data_dir. __init__.py exports 18 classes. Database used for state, JSONL for audit logs. 150 tests passing."
     },
     {
       "id": "US-003",
@@ -98,9 +106,12 @@
         "ruff format --check src/ passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Read existing strategy files at ~/.claude/coordinator/strategies/ before porting. Each strategy should use engine.executor for agent spawning.",
-      "dependsOn": ["US-002"]
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "5 strategies (research, implement, review, full, team) with STRATEGIES registry. BaseStrategy ABC with execute(). All CLI commands wired. Status command with Rich tables."
     },
     {
       "id": "US-004",
@@ -122,9 +133,13 @@
         "ruff format --check src/ passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Read ~/.claude/kernel/dq-scorer.js and ~/.claude/kernel/complexity-analyzer.js before porting. Use routing-test-suite.py test cases as ground truth for validation.",
-      "dependsOn": ["US-001", "US-011"]
+      "dependsOn": [
+        "US-001",
+        "US-011"
+      ],
+      "completionNotes": "DQ formula (V*0.35+S*0.25+C*0.40), 7 signal categories, Opus 4.6 thinking tiers (low/medium/high/max), public API coordinator.scoring.score(), baselines v1.1.0 with research lineage."
     },
     {
       "id": "US-012",
@@ -147,9 +162,12 @@
         "ruff format --check src/ passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "These safety constraints protect against runaway agents. Integrate with engine.executor so every spawned agent is monitored.",
-      "dependsOn": ["US-002"]
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "Guardrails class with max_cost, max_duration, allowed_globs, heartbeat_timeout. check_all() consolidates checks. PurePosixPath.full_match() for ** glob support. Stale lock cleanup via ConflictManager."
     },
     {
       "id": "US-005",
@@ -170,9 +188,12 @@
         "ruff format --check src/ passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Based on EGSS paper (Entropy-Guided Search Scaling). The key insight: don't allocate uniformly — spend more where the model is least certain.",
-      "dependsOn": ["US-004"]
+      "dependsOn": [
+        "US-004"
+      ],
+      "completionNotes": "EntropyAllocator with allocate(tasks, budget). Entropy = 0.4*complexity + 0.3*failure_rate + 0.3*dq_variance. Budget-aware with model downgrade fallbacks."
     },
     {
       "id": "US-006",
@@ -193,9 +214,13 @@
         "ruff format --check src/ passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Inspired by Agyn paper (72.2% SWE-bench via dynamic topology selection). This is what makes the coordinator 'self-optimizing' at the structural level.",
-      "dependsOn": ["US-002", "US-004"]
+      "dependsOn": [
+        "US-002",
+        "US-004"
+      ],
+      "completionNotes": "TopologySelector with select(task_graph). 4 topologies: parallel, sequential, hybrid, hierarchical. Hierarchical checked before linear chain. Connectivity validation in _is_linear_chain."
     },
     {
       "id": "US-009",
@@ -217,9 +242,13 @@
         "ruff format --check src/ passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Port logic from ~/.claude/scripts/detect-session-pattern.py. The auto command is the primary UX innovation — users shouldn't need to pick strategies manually.",
-      "dependsOn": ["US-003", "US-004"]
+      "dependsOn": [
+        "US-003",
+        "US-004"
+      ],
+      "completionNotes": "PatternDetector with 8 patterns, keyword-based scoring, confidence thresholds (>0.8 auto, 0.5-0.8 suggest). coord auto command wired. Pattern logging to SQLite."
     },
     {
       "id": "US-007",
@@ -240,9 +269,13 @@
         "ruff format --check src/ passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Port logic from ~/.claude/scripts/observatory/post-session-analyzer.py and agents/. Simplify to pure functions — no subprocess spawning for analysis.",
-      "dependsOn": ["US-011", "US-004"]
+      "dependsOn": [
+        "US-011",
+        "US-004"
+      ],
+      "completionNotes": "6 ACE analysis functions as pure functions. DQ-weighted consensus synthesis with outcome_detector 2x weight. coord history with Rich table. Auto-trigger on strategy completion."
     },
     {
       "id": "US-008",
@@ -265,9 +298,12 @@
         "ruff format --check src/ passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "This is the crown jewel — the self-optimization loop. Combine ACE outcomes + DQ scores + pattern trends to propose better baselines. Conservative by design (30 day window, 75% confidence, auto-rollback).",
-      "dependsOn": ["US-007"]
+      "dependsOn": [
+        "US-007"
+      ],
+      "completionNotes": "Optimizer with propose()/apply()/rollback(). 50+ session threshold, 75% confidence gate, auto-rollback on >10% metric drop. coord optimize --dry-run/--apply commands."
     },
     {
       "id": "US-010",
@@ -289,9 +325,17 @@
         "ruff format --check src/ passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Follow CCC API server pattern (SSE streaming, /api/ prefix). Use httpx.AsyncClient in tests.",
-      "dependsOn": ["US-002", "US-003", "US-011"]
+      "dependsOn": [
+        "US-002",
+        "US-003",
+        "US-011"
+      ],
+      "completionNotes": "FastAPI app with 6 endpoints: POST /api/coordinate, GET /api/status, /api/history, /api/health, /api/metrics, SSE /api/stream. coord-api entry point on port 3848."
     }
-  ]
+  ],
+  "metadata": {
+    "updatedAt": "2026-02-13T05:23:47.799Z"
+  }
 }

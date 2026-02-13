@@ -1,0 +1,21 @@
+maxIterations = 50
+autoCommit = false
+agent = "claude"
+tracker = "json"
+subagentTracingDetail = "moderate"
+configVersion = "2.1"
+
+[agentOptions]
+model = "opus"
+
+[trackerOptions]
+path = "./tasks/prd.json"
+
+[errorHandling]
+strategy = "retry"
+maxRetries = 3
+retryDelayMs = 5000
+
+[notifications]
+enabled = true
+sound = "off"

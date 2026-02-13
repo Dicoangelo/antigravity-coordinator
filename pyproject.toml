@@ -26,6 +26,7 @@ dependencies = [
     "click>=8.1",
     "fastapi>=0.115",
     "uvicorn>=0.34",
+    "sqlite-utils>=3.37",
     "rich>=13.0",
 ]
 
