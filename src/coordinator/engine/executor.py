@@ -18,6 +18,9 @@ from coordinator.engine.registry import AgentRegistry, AgentState
 # Use real binary path, not shell alias (aliases don't work in subprocess)
 CLAUDE_REAL_BIN = os.environ.get("CLAUDE_REAL_BIN", str(Path.home() / ".local" / "bin" / "claude"))
 
+# Maximum prompt length to prevent DoS via extremely long prompts
+MAX_PROMPT_LENGTH = 50_000
+
 
 @dataclass
 class AgentConfig:
@@ -94,6 +97,27 @@ class AgentExecutor:
         self.registry = registry or AgentRegistry(data_dir)
         self.conflict_mgr = conflict_mgr or ConflictManager(data_dir)
         self._active_processes: dict[str, subprocess.Popen[str]] = {}
+        self._claude_bin = self._resolve_claude_binary()
+
+    @staticmethod
+    def _resolve_claude_binary() -> str:
+        """Resolve and validate the Claude binary path."""
+        bin_path = os.environ.get("CLAUDE_REAL_BIN", str(Path.home() / ".local" / "bin" / "claude"))
+        resolved = Path(bin_path).resolve()
+        if not resolved.exists():
+            raise FileNotFoundError(f"Claude binary not found: {resolved}")
+        if not os.access(str(resolved), os.X_OK):
+            raise PermissionError(f"Claude binary not executable: {resolved}")
+        return str(resolved)
+
+    def _validate_prompt(self, prompt: str) -> str:
+        """Validate and sanitize prompt input."""
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+        if len(prompt) > MAX_PROMPT_LENGTH:
+            raise ValueError(f"Prompt exceeds maximum length ({MAX_PROMPT_LENGTH} chars)")
+        # Strip null bytes and non-printable control chars (keep newlines, tabs)
+        return "".join(c for c in prompt if c == "\n" or c == "\t" or (ord(c) >= 32))
 
     def spawn_cli_agent(self, config: AgentConfig, task_id: str) -> str:
         """
@@ -130,14 +154,15 @@ class AgentExecutor:
         model = self.MODEL_MAP.get(config.model, config.model)
         timeout = config.timeout or self.DEFAULT_TIMEOUTS.get(config.model, 300)
 
+        safe_prompt = self._validate_prompt(config.prompt)
         cmd = [
-            CLAUDE_REAL_BIN,  # Use real binary, not shell alias
+            self._claude_bin,
             "--model",
             model,
             "--max-turns",
             "50",
             "-p",
-            config.prompt,
+            safe_prompt,
         ]
 
         # Mark as started
@@ -200,14 +225,15 @@ class AgentExecutor:
         # Build command
         model = self.MODEL_MAP.get(config.model, config.model)
 
+        safe_prompt = self._validate_prompt(config.prompt)
         cmd = [
-            CLAUDE_REAL_BIN,  # Use real binary, not shell alias
+            self._claude_bin,
             "--model",
             model,
             "--max-turns",
             "50",
             "-p",
-            config.prompt,
+            safe_prompt,
         ]
 
         # Mark as started

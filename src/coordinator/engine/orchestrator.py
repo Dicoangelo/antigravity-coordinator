@@ -274,38 +274,110 @@ class MultiAgentOrchestrator:
         conflicts: Mapping[str, Any],
     ) -> dict[str, AgentResult]:
         """Execute the selected strategy."""
-        # NOTE: Strategy implementations would be imported from separate modules
-        # For now, using fallback sequential execution
-        return self._execute_sequential(task_id, assignments)
+        if strategy == "research":
+            # All read-only — safe to parallelize
+            return self._execute_parallel(task_id, assignments)
 
-    def _execute_sequential(
-        self, task_id: str, assignments: Sequence[TaskAssignment]
-    ) -> dict[str, AgentResult]:
-        """Fallback: execute assignments sequentially."""
+        elif strategy == "implement":
+            # Parallel if no conflicts, sequential if conflicts
+            if conflicts.get("can_parallelize", False):
+                return self._execute_parallel(task_id, assignments)
+            return self._execute_sequential(task_id, assignments)
+
+        elif strategy in ("review-build", "review"):
+            # Builder + reviewer can run in parallel (reviewer is read-only)
+            return self._execute_parallel(task_id, assignments)
+
+        elif strategy == "full":
+            # Phased: research → implement → review
+            return self._execute_phased(task_id, task, assignments, conflicts)
+
+        elif strategy == "team":
+            # All parallel with max workers
+            return self._execute_parallel(task_id, assignments, max_workers=len(assignments))
+
+        elif strategy == "council":
+            # All read-only council agents — fully parallel
+            return self._execute_parallel(task_id, assignments)
+
+        else:
+            # Unknown strategy — fallback to sequential
+            return self._execute_sequential(task_id, assignments)
+
+    def _assignment_to_config(self, assignment: TaskAssignment) -> AgentConfig:
+        """Convert a TaskAssignment to an AgentConfig."""
+        return AgentConfig(
+            subtask=assignment.subtask,
+            prompt=assignment.subtask,
+            agent_type=assignment.agent_type,
+            model=assignment.model,
+            files_to_lock=assignment.files,
+            lock_type=assignment.lock_type,
+            dq_score=assignment.dq_score,
+            cost_estimate=assignment.cost_estimate,
+        )
+
+    def _collect_results(self, agent_ids: list[str]) -> dict[str, AgentResult]:
+        """Collect results from a list of completed agent IDs."""
         results: dict[str, AgentResult] = {}
-
-        for assignment in assignments:
-            config = AgentConfig(
-                subtask=assignment.subtask,
-                prompt=assignment.subtask,
-                agent_type=assignment.agent_type,
-                model=assignment.model,
-                files_to_lock=assignment.files,
-                lock_type=assignment.lock_type,
-                dq_score=assignment.dq_score,
-                cost_estimate=assignment.cost_estimate,
-            )
-
-            agent_id = self.executor.spawn_cli_agent(config, task_id)
+        for agent_id in agent_ids:
             agent = self.registry.get(agent_id)
-
             results[agent_id] = AgentResult(
                 agent_id=agent_id,
                 success=agent.state == AgentState.COMPLETED.value if agent else False,
                 output=agent.result.get("output", "") if agent and agent.result else "",
                 error=agent.error if agent else "Agent not found",
             )
+        return results
 
+    def _execute_parallel(
+        self, task_id: str, assignments: Sequence[TaskAssignment], max_workers: int = 5
+    ) -> dict[str, AgentResult]:
+        """Execute assignments in parallel using the executor's thread pool."""
+        configs = [self._assignment_to_config(a) for a in assignments]
+        agent_ids = self.executor.spawn_parallel(configs, task_id, max_workers)
+        return self._collect_results(agent_ids)
+
+    def _execute_phased(
+        self,
+        task_id: str,
+        task: str,
+        assignments: Sequence[TaskAssignment],
+        conflicts: Mapping[str, Any],
+    ) -> dict[str, AgentResult]:
+        """Execute in phases: research (read) first, then implementation (write)."""
+        results: dict[str, AgentResult] = {}
+
+        # Phase 1: Research (read-only assignments)
+        research = [a for a in assignments if a.lock_type == "read"]
+        if research:
+            results.update(self._execute_parallel(task_id, research))
+
+        # Phase 2: Implementation (write assignments)
+        writes = [a for a in assignments if a.lock_type == "write"]
+        if writes:
+            if conflicts.get("can_parallelize", False):
+                results.update(self._execute_parallel(task_id, writes))
+            else:
+                results.update(self._execute_sequential(task_id, writes))
+
+        return results
+
+    def _execute_sequential(
+        self, task_id: str, assignments: Sequence[TaskAssignment]
+    ) -> dict[str, AgentResult]:
+        """Execute assignments sequentially."""
+        results: dict[str, AgentResult] = {}
+        for assignment in assignments:
+            config = self._assignment_to_config(assignment)
+            agent_id = self.executor.spawn_cli_agent(config, task_id)
+            agent = self.registry.get(agent_id)
+            results[agent_id] = AgentResult(
+                agent_id=agent_id,
+                success=agent.state == AgentState.COMPLETED.value if agent else False,
+                output=agent.result.get("output", "") if agent and agent.result else "",
+                error=agent.error if agent else "Agent not found",
+            )
         return results
 
     def _synthesize_results(
