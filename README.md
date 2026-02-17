@@ -5,7 +5,7 @@
 <p align="center">
   <a href="#install"><img src="https://img.shields.io/badge/pip_install-antigravity--coordinator-6C3483?style=for-the-badge&logo=python&logoColor=white" alt="Install" /></a>
   <img src="https://img.shields.io/badge/python-3.12+-2ECC71?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/tests-133_passing-2ECC71?style=for-the-badge" alt="Tests" />
+  <img src="https://img.shields.io/badge/tests-212_passing-2ECC71?style=for-the-badge" alt="Tests" />
   <img src="https://img.shields.io/badge/mypy-strict-6C3483?style=for-the-badge" alt="Mypy" />
   <img src="https://img.shields.io/badge/version-0.1.0-2ECC71?style=for-the-badge" alt="Version" />
 </p>
