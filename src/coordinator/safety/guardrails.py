@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 
 
 @dataclass
@@ -106,9 +106,8 @@ class Guardrails:
             return GuardrailResult(passed=True)
 
         # Check if path matches any allowed glob (supports **)
-        p = PurePosixPath(file_path)
         for pattern in self.allowed_globs:
-            if p.match(pattern):
+            if self._glob_match(file_path, pattern):
                 return GuardrailResult(passed=True)
 
         return GuardrailResult(
@@ -116,6 +115,31 @@ class Guardrails:
             violation=f"File path outside allowed scope: {file_path}",
             action="kill",
         )
+
+    @staticmethod
+    def _glob_match(path: str, pattern: str) -> bool:
+        """Match a file path against a glob pattern with ** support."""
+        i, regex = 0, ""
+        while i < len(pattern):
+            if pattern[i:i + 3] == "**/":
+                regex += "(?:[^/]+/)*"
+                i += 3
+            elif pattern[i:i + 2] == "**":
+                regex += ".*"
+                i += 2
+            elif pattern[i] == "*":
+                regex += "[^/]*"
+                i += 1
+            elif pattern[i] == "?":
+                regex += "[^/]"
+                i += 1
+            elif pattern[i] in r".+^${}|()\[]":
+                regex += "\\" + pattern[i]
+                i += 1
+            else:
+                regex += pattern[i]
+                i += 1
+        return bool(re.fullmatch(regex, path))
 
     def check_heartbeat(self, last_heartbeat: float, now: float) -> GuardrailResult:
         """Check if heartbeat is within timeout.
