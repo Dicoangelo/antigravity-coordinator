@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import fnmatch
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 
 
 @dataclass
@@ -106,9 +106,8 @@ class Guardrails:
             return GuardrailResult(passed=True)
 
         # Check if path matches any allowed glob (supports **)
-        p = PurePosixPath(file_path)
         for pattern in self.allowed_globs:
-            if p.full_match(pattern):  # type: ignore[attr-defined]  # Python 3.12+
+            if fnmatch.fnmatch(file_path, pattern):
                 return GuardrailResult(passed=True)
 
         return GuardrailResult(
