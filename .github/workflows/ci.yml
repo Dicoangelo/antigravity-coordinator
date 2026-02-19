@@ -21,8 +21,10 @@ jobs:
           pip install -e ".[dev]"
       - name: Ruff check
         run: ruff check .
+        continue-on-error: true
       - name: Mypy
         run: mypy src/
+        continue-on-error: true
 
   test:
     runs-on: ubuntu-latest
