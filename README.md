@@ -15,6 +15,10 @@
   DQ-scored routing • ACE consensus • entropy-guided allocation • research-driven self-optimization
 </p>
 
+<p align="center">
+  <a href="https://anti-gravity.metaventionsai.com"><img src="https://img.shields.io/badge/demo-anti--gravity.metaventionsai.com-6C3483?style=for-the-badge&logo=vercel&logoColor=white" alt="Demo" /></a>
+</p>
+
 ---
 
 ## What Is This?
@@ -190,7 +194,7 @@ Built on insights from 64 papers analyzed in a structured research session:
 ## Quality
 
 ```
-pytest tests/        → 133/133 passed (0.55s)
+pytest tests/        → 212/212 passed (1.52s)
 ruff check src/      → All checks passed
 ruff format --check  → 31 files formatted
 mypy src/ --strict   → No issues found
