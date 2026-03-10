@@ -25,6 +25,10 @@ A pip-installable Python package that coordinates multiple AI agents to solve co
 
 ## Architecture
 
+<p align="center">
+  <img src="docs/assets/architecture.jpg" alt="Antigravity Coordinator — 4-layer system architecture" width="100%" />
+</p>
+
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6C3483', 'edgeLabelBackground':'#1a1a2e', 'tertiaryColor': '#1a1a2e'}}}%%
 graph TB
@@ -120,6 +124,10 @@ coord optimize --apply                                   # Apply validated impro
 | `coordinator.api` | FastAPI server with 6 endpoints + SSE streaming |
 
 ## DQ Scoring
+
+<p align="center">
+  <img src="docs/assets/dq-workflow.jpg" alt="Antigravity Coordinator DQ Scoring workflow — query journey from intake through model routing to ACE feedback" width="100%" />
+</p>
 
 Every routing decision is scored with the Decision Quality (DQ) framework:
 
