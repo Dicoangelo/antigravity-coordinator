@@ -168,7 +168,7 @@ Based on research from:
    - Applied: 2026-01-18
    - Insight: Complexity thresholds for model selection
 
-2. **arXiv:2511.15755** - MyAntFarm.ai: DQ Framework for Multi-Agent Systems
+2. **arXiv:2511.15755** - MyAntFarm.ai: DQ Framework for Multi-Agent Systems (since withdrawn by its author, 2026-08-31)
    - Applied: 2026-01-18
    - Insight: Decision Quality scoring formula (40/30/30 → 35/25/40)
 
